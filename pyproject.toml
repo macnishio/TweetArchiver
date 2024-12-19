@@ -1,3 +1,10 @@
+
+[tool.poetry]
+name = "repl-nix-tweetarchiver"
+version = "0.1.0"
+description = "Tweet Archiver application"
+authors = ["Replit User"]
+
 [project]
 name = "repl-nix-tweetarchiver"
 version = "0.1.0"
@@ -11,3 +18,12 @@ dependencies = [
     "streamlit>=1.41.1",
     "sqlalchemy>=2.0.25",
 ]
+
+[tool.poetry.dependencies]
+python = ">=3.11"
+pandas = ">=2.2.3"
+plotly = ">=5.24.1"
+psycopg2-binary = ">=2.9.10"
+python-dateutil = ">=2.9.0.post0"
+streamlit = ">=1.41.1"
+sqlalchemy = ">=2.0.25"
