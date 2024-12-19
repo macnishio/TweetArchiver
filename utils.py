@@ -47,82 +47,75 @@ def parse_tweet_line(line):
         # 行全体をログに記録（デバッグ用）
         logger.debug(f"Processing line: {line}")
         
-        # カンマで分割（JSONやURLを保持）
-        parts = []
-        current_part = []
-        in_quotes = False
-        in_json = False
-        json_brace_count = 0
-        
-        for char in line.strip():
-            if char == '"' and not in_json:
-                in_quotes = not in_quotes
-            elif char == '{':
-                in_json = True
-                json_brace_count += 1
-            elif char == '}':
-                json_brace_count -= 1
-                if json_brace_count == 0:
-                    in_json = False
-            
-            if char == ',' and not (in_quotes or in_json):
-                parts.append(''.join(current_part))
-                current_part = []
-            else:
-                current_part.append(char)
-        
-        parts.append(''.join(current_part))
-        parts = [p.strip().strip('"') for p in parts]
-
-        # 最低限必要なフィールド数をチェック
-        if len(parts) < 5:
-            logger.warning(f"Insufficient fields in line: {len(parts)} fields")
+        # 基本的なパターンをチェック
+        if 'twitter.com' not in line:
+            logger.debug(f"Line does not contain twitter.com URL: {line[:100]}")
             return None
-
-        # タイムスタンプの解析
-        timestamp_str = parts[0]
-        created_at = None
+            
+        # スペースで分割してフィールドを抽出
+        parts = line.strip().split(' ')
         
-        if timestamp_str and timestamp_str.lower() != "nat":
+        # 必要なフィールドを抽出
+        author_username = parts[0]  # 最初の部分はユーザー名
+        
+        # タイムスタンプを探す（ISO 8601形式）
+        timestamp_str = None
+        for part in parts:
+            if 'T' in part and '+' in part:
+                timestamp_str = part
+                break
+        
+        # タイムスタンプの解析
+        created_at = None
+        if timestamp_str:
             try:
-                if "T" in timestamp_str:
-                    # ISO 8601形式のパース
-                    created_at = datetime.strptime(timestamp_str.split("+")[0], "%Y-%m-%dT%H:%M:%S")
-                else:
-                    # 他の形式を試行
-                    created_at = parse(timestamp_str)
+                created_at = datetime.strptime(timestamp_str.split("+")[0], "%Y-%m-%dT%H:%M:%S")
             except Exception as e:
                 logger.error(f"Error parsing timestamp '{timestamp_str}': {e}")
+                return None
 
-        # エンゲージメント数の解析
-        try:
-            engagement = int(parts[2]) if parts[2].strip() else 0
-        except (ValueError, IndexError):
-            engagement = 0
-            logger.warning(f"Could not parse engagement count from: {parts[2] if len(parts) > 2 else 'N/A'}")
+        # URLを探してtweet_idを抽出
+        tweet_url = None
+        for part in parts:
+            if 'twitter.com' in part:
+                tweet_url = part
+                break
+        
+        if not tweet_url:
+            logger.warning("No Twitter URL found in line")
+            return None
+            
+        tweet_id = extract_tweet_id_from_url(tweet_url)
+        if not tweet_id:
+            logger.warning(f"Could not extract tweet ID from URL: {tweet_url}")
+            return None
 
-        # テキスト内容の取得（3番目のフィールド）
-        text = clean_text(parts[3]) if len(parts) > 3 else ""
-
-        # URLとtweet_idの抽出（4番目のフィールド）
-        url = parts[4] if len(parts) > 4 else None
-        if url:
-            url = url.split(' ')[0]  # 余分な部分を削除
-        tweet_id = extract_tweet_id_from_url(url)
-
-        # JSONメタデータの解析（7番目のフィールド）
-        metadata = parse_json_field(parts[6]) if len(parts) > 6 else None
+        # テキストの抽出（URLの前の部分）
+        text = ""
+        for part in parts:
+            if 'twitter.com' in part:
+                break
+            if part != author_username and 'T' not in part:  # ユーザー名とタイムスタンプ以外
+                text += part + " "
+        text = clean_text(text)
+        
+        # エンゲージメント数を探す（数字のみの部分）
+        engagement = 0
+        for part in parts:
+            if part.isdigit():
+                engagement = int(part)
+                break
         
         # ツイートデータの構築
         tweet = {
             'created_at': created_at,
             'text': text,
             'tweet_id': tweet_id,
-            'url': url,
+            'url': tweet_url,
             'like_count': engagement,
-            'author_id': parts[7] if len(parts) > 7 else None,
-            'author_username': parts[8].replace('@', '') if len(parts) > 8 else None,
-            'author_name': parts[8].replace('@', '') if len(parts) > 8 else None  # 同じフィールドを使用
+            'author_id': None,  # 現在のデータ形式では利用不可
+            'author_username': author_username.replace('@', ''),
+            'author_name': author_username.replace('@', '')  # ユーザー名を名前としても使用
         }
         
         # 必須フィールドのチェック
@@ -144,17 +137,34 @@ def process_file_content(content):
     lines = content.split('\n')
     tweets = []
     skipped = 0
+    i = 0
     
-    for i, line in enumerate(lines, 1):
-        if not line.strip():
+    while i < len(lines):
+        line = lines[i].strip()
+        
+        # 空行をスキップ
+        if not line:
+            i += 1
             continue
             
-        tweet = parse_tweet_line(line)
-        if tweet:
-            tweets.append(tweet)
+        # 時刻のみの行をスキップ（例: "07:28 PM"）
+        if re.match(r'^\d{2}:\d{2}\s+[AP]M$', line):
+            i += 1
+            continue
+            
+        # ツイートデータを含む行を処理
+        if 'twitter.com' in line:
+            tweet = parse_tweet_line(line)
+            if tweet:
+                tweets.append(tweet)
+            else:
+                skipped += 1
+                logger.warning(f"Failed to parse tweet at line {i+1}: {line[:100]}...")
         else:
             skipped += 1
-            logger.warning(f"Skipped line {i}: {line[:100]}...")  # 最初の100文字のみログ出力
+            logger.debug(f"Skipped non-tweet line {i+1}: {line[:100]}...")
+            
+        i += 1
     
     logger.info(f"Successfully parsed {len(tweets)} tweets, skipped {skipped} lines")
     return pd.DataFrame(tweets)
