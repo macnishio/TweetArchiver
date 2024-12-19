@@ -53,14 +53,17 @@ def process_file_content(content):
     return pd.DataFrame(tweets)
 
 def clean_tweet_data(df):
+    # Create a copy of the dataframe first
+    df = df.copy()
+    
     # Remove duplicates
     df = df.drop_duplicates(subset=['tweet_id'], keep='first')
     
-    # Clean text
-    df['text'] = df['text'].fillna('')
+    # Clean text using loc
+    df.loc[:, 'text'] = df['text'].fillna('')
     
     # Ensure datetime and remove invalid timestamps
-    df['created_at'] = pd.to_datetime(df['created_at'], utc=True, errors='coerce')
+    df.loc[:, 'created_at'] = pd.to_datetime(df['created_at'], utc=True, errors='coerce')
     df = df.dropna(subset=['created_at'])
     
     return df
