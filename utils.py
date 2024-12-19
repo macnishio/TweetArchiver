@@ -4,35 +4,62 @@ import re
 
 def parse_tweet_line(line):
     try:
-        parts = line.strip().split(",", maxsplit=10)  # Limit splits to handle commas in text
-        if not parts[0]:  # Only check if timestamp exists
-            print(f"Skipping line without timestamp: {line}")
+        # Split line by comma, but preserve commas within JSON
+        parts = []
+        current_part = []
+        in_json = False
+        
+        for char in line.strip():
+            if char == '{':
+                in_json = True
+            elif char == '}':
+                in_json = False
+            
+            if char == ',' and not in_json:
+                parts.append(''.join(current_part))
+                current_part = []
+            else:
+                current_part.append(char)
+        
+        parts.append(''.join(current_part))
+        parts = [p.strip() for p in parts]
+
+        if not parts[0]:  # Skip if no timestamp
             return None
 
-        # Extract timestamp
-        timestamp_str = parts[0].strip('"')  # Remove quotes if present
+        # Parse timestamp
+        timestamp_str = parts[0].strip('"')
         created_at = None
         
         if timestamp_str and timestamp_str.lower() != "nat":
             try:
-                # Remove username and URL if present in timestamp
-                if " http" in timestamp_str:
-                    timestamp_str = timestamp_str.split(" http")[0]
-                if " " in timestamp_str and not any(x in timestamp_str for x in ["AM", "PM"]):
-                    timestamp_str = timestamp_str.split(" ", 1)[1]
-
                 if "T" in timestamp_str:
                     created_at = datetime.strptime(timestamp_str.split("+")[0], "%Y-%m-%dT%H:%M:%S")
-                elif "AM" in timestamp_str or "PM" in timestamp_str:
-                    try:
-                        created_at = datetime.strptime(timestamp_str, "%b %d %Y, %I:%M %p")
-                    except:
-                        created_at = datetime.strptime(timestamp_str, "%I:%M %p")
                 else:
-                    created_at = datetime.strptime(timestamp_str, "%Y-%m-%d %H:%M:%S")
+                    # Try different time formats
+                    formats = [
+                        "%Y-%m-%d %H:%M:%S",
+                        "%b %d %Y, %I:%M %p",
+                        "%I:%M %p",
+                        "%B %d %Y, %I:%M %p"
+                    ]
+                    
+                    for fmt in formats:
+                        try:
+                            created_at = datetime.strptime(timestamp_str, fmt)
+                            break
+                        except ValueError:
+                            continue
+
             except Exception as e:
                 print(f"Warning: Could not parse timestamp '{timestamp_str}': {e}")
                 created_at = None
+
+        # Extract engagement counts
+        try:
+            engagement = int(parts[2]) if parts[2].strip() else 0
+        except (ValueError, IndexError):
+            engagement = 0
 
         # Extract tweet data
         tweet = {
@@ -40,15 +67,19 @@ def parse_tweet_line(line):
             'text': parts[3] if len(parts) > 3 else "",
             'tweet_id': parts[4] if len(parts) > 4 else None,
             'url': parts[5] if len(parts) > 5 else None,
-            'conversation_id': parts[7] if len(parts) > 7 else None,
-            'author_id': parts[8] if len(parts) > 8 else None,
-            'author_username': parts[9] if len(parts) > 9 else None,
-            'author_name': parts[10] if len(parts) > 10 else None
+            'author_id': parts[7] if len(parts) > 7 else None,
+            'author_username': parts[8] if len(parts) > 8 else None,
+            'author_name': parts[8] if len(parts) > 8 else None,  # Using username as name if not provided
+            'like_count': engagement
         }
         
+        # Skip if no tweet_id (required field)
+        if not tweet['tweet_id']:
+            return None
+            
         return tweet
     except Exception as e:
-        print(f"Error parsing line: {e}")
+        print(f"Error parsing line: {line}\nError: {e}")
         return None
 
 def process_file_content(content):

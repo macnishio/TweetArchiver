@@ -28,20 +28,27 @@ class Database:
         # Prepare data for insertion
         data = []
         for _, row in df.iterrows():
+            # Skip rows without tweet_id (required field)
+            if pd.isna(row.get('tweet_id')):
+                continue
+                
             data.append((
-                row.get('tweet_id', None),
-                row.get('created_at', None),
-                row.get('author_id', None),
-                row.get('author_username', None),
-                row.get('author_name', None),
-                row.get('text', None),
-                row.get('reply_count', 0),
-                row.get('retweet_count', 0),
+                str(row.get('tweet_id')),  # Ensure tweet_id is string
+                row.get('created_at'),
+                row.get('author_id'),
+                row.get('author_username'),
+                row.get('author_username'),  # Using username as name
+                row.get('text', ''),
+                0,  # reply_count
+                0,  # retweet_count
                 row.get('like_count', 0),
-                row.get('url', None),
-                row.get('conversation_id', None),
-                row.get('in_reply_to_user_id', None)
+                row.get('url'),
+                None,  # conversation_id
+                None   # in_reply_to_user_id
             ))
+
+        if not data:  # If no valid data after filtering
+            return 0
 
         with self.conn.cursor() as cur:
             query = """
