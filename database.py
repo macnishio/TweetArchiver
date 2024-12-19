@@ -122,8 +122,8 @@ class Database:
             params.append(start_datetime)
 
         if end_date:
-            end_datetime = (pd.Timestamp(end_date) + pd.Timedelta(days=1)).tz_localize('UTC')
-            conditions.append("created_at < %s")
+            end_datetime = pd.Timestamp(end_date).tz_localize('UTC')
+            conditions.append("DATE(created_at) <= DATE(%s)")
             params.append(end_datetime)
 
         query = """
