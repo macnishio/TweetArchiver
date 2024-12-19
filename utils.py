@@ -9,14 +9,17 @@ def parse_tweet_line(line):
             return None
 
         # Extract timestamp
-        timestamp_str = parts[0]
-        try:
-            if "T" in timestamp_str:
-                created_at = datetime.strptime(timestamp_str, "%Y-%m-%dT%H:%M:%S%z")
-            else:
-                created_at = datetime.strptime(timestamp_str, "%Y-%m-%d %H:%M:%S")
-        except:
-            created_at = None
+        timestamp_str = parts[0].strip('"')  # Remove quotes if present
+        created_at = None
+        
+        if timestamp_str and timestamp_str.lower() != "nat":
+            try:
+                if "T" in timestamp_str:
+                    created_at = datetime.strptime(timestamp_str, "%Y-%m-%dT%H:%M:%S%z")
+                else:
+                    created_at = datetime.strptime(timestamp_str, "%Y-%m-%d %H:%M:%S")
+            except:
+                created_at = None
 
         # Extract tweet data
         tweet = {
@@ -56,8 +59,9 @@ def clean_tweet_data(df):
     # Clean text
     df['text'] = df['text'].fillna('')
     
-    # Ensure datetime
-    df['created_at'] = pd.to_datetime(df['created_at'], utc=True)
+    # Ensure datetime and remove invalid timestamps
+    df['created_at'] = pd.to_datetime(df['created_at'], utc=True, errors='coerce')
+    df = df.dropna(subset=['created_at'])
     
     return df
 
