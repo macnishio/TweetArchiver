@@ -93,25 +93,29 @@ class Database:
         return pd.read_sql(query, self.conn, params=(limit, offset))
 
     def search_tweets(self, keyword=None, username=None, start_date=None, end_date=None):
-        conditions = []
+        conditions = ["1=1"]  # Always true condition to simplify query building
         params = []
 
         if keyword:
-            conditions.append("text ILIKE %s")
-            params.append(f"%{keyword}%")
+            # Split keywords and search for each word
+            keywords = keyword.split()
+            keyword_conditions = []
+            for kw in keywords:
+                keyword_conditions.append("text ILIKE %s")
+                params.append(f"%{kw}%")
+            if keyword_conditions:
+                conditions.append("(" + " OR ".join(keyword_conditions) + ")")
 
         if username:
             conditions.append("author_username ILIKE %s")
             params.append(f"%{username}%")
 
         if start_date:
-            # Convert date to datetime at start of day in UTC
             start_datetime = pd.Timestamp(start_date).tz_localize('UTC')
             conditions.append("created_at >= %s")
             params.append(start_datetime)
 
         if end_date:
-            # Convert date to datetime at end of day in UTC
             end_datetime = (pd.Timestamp(end_date) + pd.Timedelta(days=1)).tz_localize('UTC')
             conditions.append("created_at < %s")
             params.append(end_datetime)
