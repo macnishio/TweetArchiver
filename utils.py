@@ -4,9 +4,9 @@ import re
 
 def parse_tweet_line(line):
     try:
-        parts = line.strip().split(",")
-        if len(parts) < 4:  # Only require essential fields
-            print(f"Skipping line with insufficient fields: {line}")
+        parts = line.strip().split(",", maxsplit=10)  # Limit splits to handle commas in text
+        if not parts[0]:  # Only check if timestamp exists
+            print(f"Skipping line without timestamp: {line}")
             return None
 
         # Extract timestamp
