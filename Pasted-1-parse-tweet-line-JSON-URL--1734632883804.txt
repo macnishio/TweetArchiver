@@ -1,0 +1,89 @@
+1. 行のパースに失敗
+parse_tweet_line 関数では、各行をカンマで分割する際にカスタムロジックが使用されています。このロジックが、JSON形式やURLを含む行を正しく分割できていない可能性があります。
+特に、in_json と in_quotes の制御が完全ではない場合、誤ってフィールドが結合されることがあります。
+解決策:
+パース部分をライブラリ（例：csv.reader）に置き換えることで信頼性を向上させる。
+または、カンマ区切りのデータ形式が適切でない場合、json.loads を直接使用するなど、適切なデータ形式で処理を進める。
+2. 必須フィールドの不足
+tweet_id のような必須フィールドがない行がスキップされている可能性があります。
+行に必要なフィールド（例: タイムスタンプ、URL、本文）が不足していると、その行が無効とみなされます。
+解決策:
+logger.warning メッセージでフィールドが不足している理由を明確に記録し、行ごとの問題を確認する。
+3. タイムスタンプのエラー
+created_at をパースできない行はスキップされています。
+タイムスタンプの形式が多様である場合、解析に失敗することがあります。
+解決策:
+datetime.strptime を補完するために dateutil.parser.parse を使用することで、さまざまな形式に対応する。
+python
+コードをコピーする
+from dateutil.parser import parse
+
+# タイムスタンプの解析
+if timestamp_str:
+    try:
+        created_at = parse(timestamp_str)
+    except Exception as e:
+        logger.error(f"Error parsing timestamp '{timestamp_str}': {e}")
+4. 重複削除の影響
+clean_tweet_data 関数で、重複する tweet_id を削除しています。元々のデータに重複が多い場合、結果的に少数のツイートしか残らない可能性があります。
+解決策:
+tweet_id の重複を確認し、不要な重複削除が行われていないか検討する。
+5. スキップされた行の記録
+スキップされた行（return None）の原因を特定するため、問題の行をログに記録して確認してください。
+python
+コードをコピーする
+if not tweet['tweet_id']:
+    logger.warning(f"Skipping tweet due to missing tweet_id: {line}")
+    return None
+デバッグの提案
+以下のコードを追加して、スキップされた行とその理由を確認してください。
+
+python
+コードをコピーする
+def debug_skipped_lines(content):
+    """スキップされた行をデバッグ"""
+    lines = content.split('\n')
+    for line in lines:
+        if not line.strip():
+            continue
+        
+        tweet = parse_tweet_line(line)
+        if not tweet:
+            logger.info(f"Skipped line: {line}")
+これを実行して、データの構造上の問題を特定してください。
+
+修正版コード例
+データの処理を改善する場合、以下を試してみてください。
+
+python
+コードをコピーする
+import pandas as pd
+from dateutil.parser import parse
+
+def parse_tweet_line(line):
+    try:
+        parts = line.strip().split(',')
+        if len(parts) < 5:
+            logger.warning(f"Line skipped: insufficient fields: {line}")
+            return None
+        
+        created_at = parse(parts[0]) if parts[0] else None
+        text = clean_text(parts[3])
+        tweet_id = extract_tweet_id_from_url(parts[4])
+        
+        if not tweet_id:
+            logger.warning(f"Line skipped: missing tweet_id: {line}")
+            return None
+        
+        return {
+            'created_at': created_at,
+            'text': text,
+            'tweet_id': tweet_id,
+            'url': parts[4],
+            'like_count': int(parts[2]) if parts[2].isdigit() else 0,
+            'author_id': parts[7] if len(parts) > 7 else None
+        }
+    except Exception as e:
+        logger.error(f"Error parsing line: {line}\nError: {e}")
+        return None
+これを適用しても34件しか取得できない場合、データの構造により深刻な問題がある可能性があります。その場合、元データを再確認してください。
