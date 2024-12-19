@@ -101,6 +101,8 @@ class Database:
             keywords = keyword.split()
             keyword_conditions = []
             for kw in keywords:
+                if kw.lower() == "no":  # Skip "no" as a search term
+                    continue
                 keyword_conditions.append("text ILIKE %s")
                 params.append(f"%{kw}%")
             if keyword_conditions:
@@ -109,6 +111,10 @@ class Database:
         if username:
             conditions.append("author_username ILIKE %s")
             params.append(f"%{username}%")
+            
+        # Add date condition for tweets on or before 2024-04-30
+        conditions.append("created_at <= %s")
+        params.append(pd.Timestamp('2024-04-30').tz_localize('UTC'))
 
         if start_date:
             start_datetime = pd.Timestamp(start_date).tz_localize('UTC')
