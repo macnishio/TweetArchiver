@@ -1,6 +1,7 @@
-CREATE TABLE IF NOT EXISTS tweets (
+DROP TABLE IF EXISTS tweets;
+CREATE TABLE tweets (
     id SERIAL PRIMARY KEY,
-    tweet_id VARCHAR(255) UNIQUE,
+    tweet_id VARCHAR(255) UNIQUE NOT NULL,
     created_at TIMESTAMP,
     author_id VARCHAR(255),
     author_username VARCHAR(255),

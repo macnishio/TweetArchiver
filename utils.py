@@ -15,10 +15,19 @@ def parse_tweet_line(line):
         
         if timestamp_str and timestamp_str.lower() != "nat":
             try:
+                # Remove username and URL if present in timestamp
+                if " http" in timestamp_str:
+                    timestamp_str = timestamp_str.split(" http")[0]
+                if " " in timestamp_str and not any(x in timestamp_str for x in ["AM", "PM"]):
+                    timestamp_str = timestamp_str.split(" ", 1)[1]
+
                 if "T" in timestamp_str:
                     created_at = datetime.strptime(timestamp_str.split("+")[0], "%Y-%m-%dT%H:%M:%S")
                 elif "AM" in timestamp_str or "PM" in timestamp_str:
-                    created_at = datetime.strptime(timestamp_str, "%b %d %Y, %I:%M %p")
+                    try:
+                        created_at = datetime.strptime(timestamp_str, "%b %d %Y, %I:%M %p")
+                    except:
+                        created_at = datetime.strptime(timestamp_str, "%I:%M %p")
                 else:
                     created_at = datetime.strptime(timestamp_str, "%Y-%m-%d %H:%M:%S")
             except Exception as e:
