@@ -5,7 +5,8 @@ import re
 def parse_tweet_line(line):
     try:
         parts = line.strip().split(",")
-        if len(parts) < 8:
+        if len(parts) < 4:  # Only require essential fields
+            print(f"Skipping line with insufficient fields: {line}")
             return None
 
         # Extract timestamp
@@ -15,10 +16,13 @@ def parse_tweet_line(line):
         if timestamp_str and timestamp_str.lower() != "nat":
             try:
                 if "T" in timestamp_str:
-                    created_at = datetime.strptime(timestamp_str, "%Y-%m-%dT%H:%M:%S%z")
+                    created_at = datetime.strptime(timestamp_str.split("+")[0], "%Y-%m-%dT%H:%M:%S")
+                elif "AM" in timestamp_str or "PM" in timestamp_str:
+                    created_at = datetime.strptime(timestamp_str, "%b %d %Y, %I:%M %p")
                 else:
                     created_at = datetime.strptime(timestamp_str, "%Y-%m-%d %H:%M:%S")
-            except:
+            except Exception as e:
+                print(f"Warning: Could not parse timestamp '{timestamp_str}': {e}")
                 created_at = None
 
         # Extract tweet data
