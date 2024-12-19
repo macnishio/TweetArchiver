@@ -3,6 +3,7 @@ import psycopg2
 from psycopg2.extras import execute_values
 import pandas as pd
 from datetime import datetime
+from sqlalchemy import create_engine
 
 class Database:
     def __init__(self):
@@ -12,6 +13,10 @@ class Database:
             password=os.environ.get('PGPASSWORD'),
             host=os.environ.get('PGHOST'),
             port=os.environ.get('PGPORT')
+        )
+        self.engine = create_engine(
+            f"postgresql://{os.environ.get('PGUSER')}:{os.environ.get('PGPASSWORD')}@"
+            f"{os.environ.get('PGHOST')}:{os.environ.get('PGPORT')}/{os.environ.get('PGDATABASE')}"
         )
         self._ensure_tables_exist()
 
@@ -148,7 +153,7 @@ class Database:
             query += " WHERE " + " AND ".join(conditions)
         query += " ORDER BY created_at DESC LIMIT 1000"
 
-        df = pd.read_sql(query, self.conn, params=params)
+        df = pd.read_sql_query(query, self.engine, params=params)
         if not df.empty:
             df['created_at'] = pd.to_datetime(df['created_at'])
             # Check if timestamps are already tz-aware
