@@ -183,8 +183,12 @@ def clean_tweet_data(df):
     # Clean text
     df.loc[:, 'text'] = df['text'].fillna('')
     
-    # Ensure datetime and remove invalid timestamps
-    df.loc[:, 'created_at'] = pd.to_datetime(df['created_at'], utc=True, errors='coerce')
+    # Convert timestamps to UTC datetime
+    df = df.assign(
+        created_at=lambda x: pd.to_datetime(x['created_at'])
+        .dt.tz_localize('UTC')
+        .dt.tz_convert('UTC')
+    )
     
     # Remove rows with missing required fields
     df = df.dropna(subset=['tweet_id', 'created_at'])
