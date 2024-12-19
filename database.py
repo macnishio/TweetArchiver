@@ -29,20 +29,28 @@ class Database:
         data = []
         for _, row in df.iterrows():
             # Skip rows without tweet_id (required field)
-            if pd.isna(row.get('tweet_id')):
+            tweet_id = row.get('tweet_id')
+            if pd.isna(tweet_id):
                 continue
-                
+
+            # Ensure numeric fields are within PostgreSQL integer limits
+            like_count = row.get('like_count', 0)
+            if isinstance(like_count, (int, float)):
+                like_count = min(like_count, 2147483647)  # PostgreSQL INTEGER最大値
+            else:
+                like_count = 0
+                    
             data.append((
-                str(row.get('tweet_id')),  # Ensure tweet_id is string
+                str(tweet_id),  # 確実に文字列として扱う
                 row.get('created_at'),
-                row.get('author_id'),
-                row.get('author_username'),
-                row.get('author_username'),  # Using username as name
-                row.get('text', ''),
+                str(row.get('author_id')) if row.get('author_id') else None,
+                str(row.get('author_username')) if row.get('author_username') else None,
+                str(row.get('author_username')) if row.get('author_username') else None,  # Using username as name
+                str(row.get('text', '')),
                 0,  # reply_count
                 0,  # retweet_count
-                row.get('like_count', 0),
-                row.get('url'),
+                like_count,
+                str(row.get('url')) if row.get('url') else None,
                 None,  # conversation_id
                 None   # in_reply_to_user_id
             ))
@@ -108,4 +116,3 @@ class Database:
             FROM tweets
         """
         return pd.read_sql(query, self.conn)
-
