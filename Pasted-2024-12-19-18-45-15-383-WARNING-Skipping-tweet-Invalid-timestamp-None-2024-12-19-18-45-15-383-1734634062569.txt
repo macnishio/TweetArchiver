@@ -1,0 +1,48 @@
+2024-12-19 18:45:15,383 - WARNING - Skipping tweet: Invalid timestamp: None
+2024-12-19 18:45:15,383 - WARNING - Failed to parse tweet at line 26447: ai_syacho https://twitter.com/ai_syacho/status/1828431882952036548 2024-08-27T09:58:26-0400 0 @yoshi...
+2024-12-19 18:45:15,630 - INFO - Successfully parsed 25827 tweets, skipped 528 lines
+2024-12-19 18:45:15,716 - INFO - After cleaning: 25824 tweets remain
+2024-12-19 18:45:19,291 - WARNING - Skipping tweet: Invalid timestamp: None
+2024-12-19 18:45:19,291 - WARNING - Failed to parse tweet at line 26447: ai_syacho https://twitter.com/ai_syacho/status/1828431882952036548 2024-08-27T09:58:26-0400 0 @yoshi...
+2024-12-19 18:45:19,508 - INFO - Successfully parsed 25827 tweets, skipped 528 lines
+2024-12-19 18:45:19,576 - INFO - After cleaning: 25824 tweets remain
+/home/runner/TweetArchiver/database.py:155: UserWarning: pandas only supports SQLAlchemy connectable (engine/connection) or database string URI or sqlite3 DBAPI2 connection. Other DBAPI2 objects are not tested. Please consider using SQLAlchemy.
+  return pd.read_sql(query, self.conn)
+/home/runner/TweetArchiver/database.py:93: UserWarning: pandas only supports SQLAlchemy connectable (engine/connection) or database string URI or sqlite3 DBAPI2 connection. Other DBAPI2 objects are not tested. Please consider using SQLAlchemy.
+  return pd.read_sql(query, self.conn, params=(limit, offset))
+/home/runner/TweetArchiver/database.py:141: UserWarning:
+
+pandas only supports SQLAlchemy connectable (engine/connection) or database string URI or sqlite3 DBAPI2 connection. Other DBAPI2 objects are not tested. Please consider using SQLAlchemy.
+
+/home/runner/TweetArchiver/database.py:141: UserWarning:
+
+pandas only supports SQLAlchemy connectable (engine/connection) or database string URI or sqlite3 DBAPI2 connection. Other DBAPI2 objects are not tested. Please consider using SQLAlchemy.
+
+2024-12-19 18:47:29.458 Uncaught app execution
+Traceback (most recent call last):
+  File "/home/runner/TweetArchiver/.pythonlibs/lib/python3.11/site-packages/streamlit/runtime/scriptrunner/exec_code.py", line 88, in exec_func_with_error_handling
+    result = func()
+             ^^^^^^
+  File "/home/runner/TweetArchiver/.pythonlibs/lib/python3.11/site-packages/streamlit/runtime/scriptrunner/script_runner.py", line 579, in code_to_exec
+    exec(code, module.__dict__)
+  File "/home/runner/TweetArchiver/app.py", line 63, in <module>
+    tweets = db.search_tweets(
+             ^^^^^^^^^^^^^^^^^
+  File "/home/runner/TweetArchiver/database.py", line 143, in search_tweets
+    df['created_at'] = pd.to_datetime(df['created_at']).dt.tz_localize('UTC')
+                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/TweetArchiver/.pythonlibs/lib/python3.11/site-packages/pandas/core/accessor.py", line 112, in f
+    return self._delegate_method(name, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/TweetArchiver/.pythonlibs/lib/python3.11/site-packages/pandas/core/indexes/accessors.py", line 132, in _delegate_method
+    result = method(*args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/TweetArchiver/.pythonlibs/lib/python3.11/site-packages/pandas/core/indexes/datetimes.py", line 293, in tz_localize
+    arr = self._data.tz_localize(tz, ambiguous, nonexistent)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/TweetArchiver/.pythonlibs/lib/python3.11/site-packages/pandas/core/arrays/_mixins.py", line 81, in method
+    return meth(self, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/TweetArchiver/.pythonlibs/lib/python3.11/site-packages/pandas/core/arrays/datetimes.py", line 1083, in tz_localize
+    raise TypeError("Already tz-aware, use tz_convert to convert.")
+TypeError: Already tz-aware, use tz_convert to convert.

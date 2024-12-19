@@ -140,7 +140,12 @@ class Database:
 
         df = pd.read_sql(query, self.conn, params=params)
         if not df.empty:
-            df['created_at'] = pd.to_datetime(df['created_at']).dt.tz_localize('UTC')
+            df['created_at'] = pd.to_datetime(df['created_at'])
+            # Check if timestamps are already tz-aware
+            if df['created_at'].dt.tz is None:
+                df['created_at'] = df['created_at'].dt.tz_localize('UTC')
+            else:
+                df['created_at'] = df['created_at'].dt.tz_convert('UTC')
         return df
 
     def get_stats(self):
