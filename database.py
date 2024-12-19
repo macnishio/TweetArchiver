@@ -105,19 +105,43 @@ class Database:
             params.append(f"%{username}%")
 
         if start_date:
+            # Convert date to datetime at start of day in UTC
+            start_datetime = pd.Timestamp(start_date).tz_localize('UTC')
             conditions.append("created_at >= %s")
-            params.append(start_date)
+            params.append(start_datetime)
 
         if end_date:
-            conditions.append("created_at <= %s")
-            params.append(end_date)
+            # Convert date to datetime at end of day in UTC
+            end_datetime = (pd.Timestamp(end_date) + pd.Timedelta(days=1)).tz_localize('UTC')
+            conditions.append("created_at < %s")
+            params.append(end_datetime)
 
-        query = "SELECT * FROM tweets"
+        query = """
+            SELECT 
+                id,
+                tweet_id,
+                created_at AT TIME ZONE 'UTC' as created_at,
+                author_id,
+                author_username,
+                author_name,
+                text,
+                reply_count,
+                retweet_count,
+                like_count,
+                url,
+                conversation_id,
+                in_reply_to_user_id
+            FROM tweets
+        """
+        
         if conditions:
             query += " WHERE " + " AND ".join(conditions)
         query += " ORDER BY created_at DESC LIMIT 1000"
 
-        return pd.read_sql(query, self.conn, params=params)
+        df = pd.read_sql(query, self.conn, params=params)
+        if not df.empty:
+            df['created_at'] = pd.to_datetime(df['created_at']).dt.tz_localize('UTC')
+        return df
 
     def get_stats(self):
         query = """
