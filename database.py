@@ -13,13 +13,26 @@ class Database:
             host=os.environ.get('PGHOST'),
             port=os.environ.get('PGPORT')
         )
-        self.create_tables()
+        self._ensure_tables_exist()
 
-    def create_tables(self):
+    def _ensure_tables_exist(self):
+        """テーブルが存在しない場合のみ作成"""
         with self.conn.cursor() as cur:
-            with open('schema.sql', 'r') as f:
-                cur.execute(f.read())
-            self.conn.commit()
+            # テーブルの存在確認
+            cur.execute("""
+                SELECT EXISTS (
+                    SELECT FROM information_schema.tables 
+                    WHERE table_schema = 'public' 
+                    AND table_name = 'tweets'
+                );
+            """)
+            table_exists = cur.fetchone()[0]
+            
+            if not table_exists:
+                with open('schema.sql', 'r') as f:
+                    cur.execute(f.read())
+                self.conn.commit()
+                logger.info("Tweets table created successfully")
 
     def insert_tweets(self, df):
         if df.empty:
