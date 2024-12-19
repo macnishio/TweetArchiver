@@ -24,7 +24,13 @@ def parse_tweet_line(line):
         parts.append(''.join(current_part))
         parts = [p.strip() for p in parts]
 
-        if not parts[0]:  # Skip if no timestamp
+        if len(parts) < 3:  # Only require minimum fields
+            print(f"Skipping line with insufficient fields (need at least 3): {line}")
+            return None
+
+        # Skip empty lines but allow tweets without timestamps
+        if not any(parts):
+            print(f"Skipping empty line")
             return None
 
         # Parse timestamp
